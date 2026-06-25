@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Management System</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4ff;
+      color: #1e1e2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #3b4cca;
+      color: white;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 { font-size: 1.4rem; font-weight: 600; }
+
+    .stats {
+      display: flex;
+      gap: 12px;
+      background: white;
+      padding: 16px 40px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .stat-card {
+      background: #f0f4ff;
+      border-radius: 10px;
+      padding: 12px 24px;
+      text-align: center;
+      min-width: 130px;
+    }
+    .stat-card .num { font-size: 1.6rem; font-weight: 700; color: #3b4cca; }
+    .stat-card .lbl { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      padding: 16px 40px;
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .toolbar input {
+      flex: 1;
+      padding: 9px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .btn {
+      padding: 9px 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #3b4cca; color: white; }
+    .btn-danger  { background: #ef4444; color: white; }
+    .btn-warning { background: #f59e0b; color: white; }
+    .btn-sm { padding: 5px 12px; font-size: 0.82rem; }
+
+    .table-wrap {
+      padding: 24px 40px;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    th {
+      background: #3b4cca;
+      color: white;
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    td {
+      padding: 11px 16px;
+      font-size: 0.88rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; }
+    .actions { display: flex; gap: 6px; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 14px;
+      padding: 28px 32px;
+      width: 440px;
+      max-width: 95vw;
+    }
+    .modal h2 { font-size: 1.1rem; margin-bottom: 20px; color: #1e1e2e; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: #475569;
+      margin-bottom: 5px;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: #3b4cca;
+      box-shadow: 0 0 0 3px rgba(59,76,202,0.12);
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .btn-ghost {
+      background: none;
+      border: 1px solid #cbd5e1;
+      color: #475569;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: white;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 999;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; }
+    #toast.success { background: #22c55e; }
+    #toast.error   { background: #ef4444; }
+
+    .empty {
+      text-align: center;
+      padding: 50px;
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🎓 Student Management System</h1>
+</header>
+
+<!-- Stats bar -->
+<div class="stats">
+  <div class="stat-card">
+    <div class="num" id="stat-total">0</div>
+    <div class="lbl">Total Students</div>
+  </div>
+  <div class="stat-card">
+    <div class="num" id="stat-courses">0</div>
+    <div class="lbl">Courses</div>
+  </div>
+  <div class="stat-card">
+    <div class="num" id="stat-age">—</div>
+    <div class="lbl">Avg. Age</div>
+  </div>
+</div>
+
+<!-- Search + Add button -->
+<div class="toolbar">
+  <input type="text" id="search-input" placeholder="Search by name, email or course…" oninput="handleSearch()" />
+  <button class="btn btn-primary" onclick="openAddModal()">+ Add Student</button>
+</div>
+
+<!-- Table -->
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Full Name</th>
+        <th>Email</th>
+        <th>Course</th>
+        <th>Age</th>
+        <th>Phone</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="student-table-body">
+      <tr><td colspan="7" class="empty">Loading…</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h2 id="modal-title">Add Student</h2>
+    <input type="hidden" id="edit-id" />
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" id="f-name" placeholder="e.g. Ananya Sharma" />
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="f-email" placeholder="e.g. ananya@example.com" />
+    </div>
+    <div class="form-group">
+      <label>Course Name</label>
+      <input type="text" id="f-course" placeholder="e.g. BCA" />
+    </div>
+    <div class="form-group">
+      <label>Age</label>
+      <input type="number" id="f-age" placeholder="e.g. 20" min="5" max="100" />
+    </div>
+    <div class="form-group">
+      <label>Phone Number</label>
+      <input type="text" id="f-phone" placeholder="e.g. 9876543210" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitForm()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div id="toast"></div>
+
+<script>
+  const API = "http://localhost:8000";
+
+  // ── Load students from the API and render the table ──────
+  async function loadStudents(search = "") {
+    const url = search ? `${API}/students?search=${encodeURIComponent(search)}` : `${API}/students`;
+    const res = await fetch(url);
+    const data = await res.json();
+    renderTable(data.students);
+    loadStats();
+  }
+
+  function renderTable(students) {
+    const tbody = document.getElementById("student-table-body");
+    if (!students.length) {
+      tbody.innerHTML = `<tr><td colspan="7" class="empty">No students found.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = students.map(s => `
+      <tr>
+        <td>${s.student_id}</td>
+        <td>${s.full_name}</td>
+        <td>${s.email}</td>
+        <td>${s.course_name}</td>
+        <td>${s.age}</td>
+        <td>${s.phone}</td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-warning btn-sm" onclick="openEditModal(${s.student_id})">Edit</button>
+            <button class="btn btn-danger  btn-sm" onclick="deleteStudent(${s.student_id})">Delete</button>
+          </div>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  // ── Load the stats bar numbers ────────────────────────────
+  async function loadStats() {
+    const res  = await fetch(`${API}/students/meta/stats`);
+    const data = await res.json();
+    document.getElementById("stat-total").textContent   = data.total   ?? 0;
+    document.getElementById("stat-courses").textContent = data.courses ?? 0;
+    document.getElementById("stat-age").textContent     = data.avg_age ?? "—";
+  }
+
+  // ── Search (with 300ms debounce so it doesn't fire on every key) ──
+  let searchTimer;
+  function handleSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      loadStudents(document.getElementById("search-input").value.trim());
+    }, 300);
+  }
+
+  // ── Modal helpers ─────────────────────────────────────────
+  function openAddModal() {
+    document.getElementById("modal-title").textContent = "Add Student";
+    document.getElementById("edit-id").value = "";
+    ["name","email","course","age","phone"].forEach(f =>
+      document.getElementById("f-" + f).value = ""
+    );
+    document.getElementById("modal-overlay").classList.add("open");
+  }
+
+  async function openEditModal(id) {
+    const res  = await fetch(`${API}/students/${id}`);
+    const data = await res.json();
+    document.getElementById("modal-title").textContent = "Edit Student";
+    document.getElementById("edit-id").value    = data.student_id;
+    document.getElementById("f-name").value     = data.full_name;
+    document.getElementById("f-email").value    = data.email;
+    document.getElementById("f-course").value   = data.course_name;
+    document.getElementById("f-age").value      = data.age;
+    document.getElementById("f-phone").value    = data.phone;
+    document.getElementById("modal-overlay").classList.add("open");
+  }
+
+  function closeModal() {
+    document.getElementById("modal-overlay").classList.remove("open");
+  }
+
+  // ── Submit the form (handles both Add and Edit) ───────────
+  async function submitForm() {
+    const id = document.getElementById("edit-id").value;
+    const body = {
+      full_name:   document.getElementById("f-name").value.trim(),
+      email:       document.getElementById("f-email").value.trim(),
+      course_name: document.getElementById("f-course").value.trim(),
+      age:         parseInt(document.getElementById("f-age").value),
+      phone:       document.getElementById("f-phone").value.trim(),
+    };
+
+    // Basic frontend validation
+    if (!body.full_name || !body.email || !body.course_name || !body.age || !body.phone) {
+      showToast("Please fill in all fields.", "error");
+      return;
+    }
+
+    const url    = id ? `${API}/students/${id}` : `${API}/students`;
+    const method = id ? "PUT" : "POST";
+
+    const res  = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      showToast(id ? "Student updated!" : "Student added!", "success");
+      closeModal();
+      loadStudents();
+    } else {
+      showToast(data.detail || "Something went wrong.", "error");
+    }
+  }
+
+  // ── Delete a student ──────────────────────────────────────
+  async function deleteStudent(id) {
+    if (!confirm("Are you sure you want to delete this student?")) return;
+    const res = await fetch(`${API}/students/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      showToast("Student deleted.", "success");
+      loadStudents();
+    } else {
+      showToast("Failed to delete student.", "error");
+    }
+  }
+
+  // ── Toast notification ────────────────────────────────────
+  function showToast(msg, type = "success") {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className = `show ${type}`;
+    setTimeout(() => t.className = "", 3000);
+  }
+
+  // ── Initial load ──────────────────────────────────────────
+  loadStudents();
+</script>
+</body>
+</html>
